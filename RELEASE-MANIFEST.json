@@ -1,0 +1,22 @@
+{
+  "version": "0.1.0",
+  "protocol": "3.6",
+  "excluded": [
+    "production assets",
+    "browser sessions and credentials",
+    "personal memory",
+    "one-off asset repair scripts",
+    "historical binary evidence"
+  ],
+  "source_files_copied": 109,
+  "historical_links_unlinked": [
+    {
+      "file": "README.md",
+      "target": "docs/validation/release-validation.md"
+    },
+    {
+      "file": "docs\\workflow\\roundtrip.md",
+      "target": "../../assets/stellar-repairer/work/roundtrip-test/测试报告.md"
+    }
+  ]
+}

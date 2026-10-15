@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tripo 导出与交付验收"
+  short_description: "Tripo Studio 网页资产流程：Tripo 导出与交付验收、状态记录与阶段交接"
+  default_prompt: "使用 $tripo-studio-deliver 处理当前项目中对应阶段，并依据已有记录和授权继续。"

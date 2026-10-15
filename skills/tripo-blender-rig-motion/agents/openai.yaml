@@ -1,0 +1,4 @@
+interface:
+  display_name: "Blender 绑定与动作"
+  short_description: "检查精修Tripo已有绑定或制作定制骨架动作，验证权重、变形和导出播放"
+  default_prompt: "使用 $tripo-blender-rig-motion 先检查当前角色已有骨架和动作，按需求决定复用、修整或新建，并验证变形及导出播放。"

@@ -1,0 +1,21 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+import {fileRef,readJSON} from './production-io.mjs';
+test('real static Blender domain collector detects geometry and material changes and fails closed on unsupported constructs',{skip:!process.env.BLENDER_TEST_EXE},t=>{
+  const base=fs.mkdtempSync(path.join(os.tmpdir(),'tripo-domains-'));
+  t.after(()=>{assert.equal(path.dirname(base),path.resolve(os.tmpdir()));assert.ok(path.basename(base).startsWith('tripo-domains-'));fs.rmSync(base,{recursive:true,force:true});});
+  const script=path.join(base,'fixture.py');
+  fs.writeFileSync(script,`import bpy, sys\nfrom pathlib import Path\nout=Path(sys.argv[sys.argv.index('--')+1])\nbpy.ops.object.select_all(action='SELECT')\nbpy.ops.object.delete(use_global=False)\nbpy.ops.mesh.primitive_cube_add()\nobj=bpy.context.object\nmat=bpy.data.materials.new('paint')\nmat.use_nodes=False\nobj.data.materials.append(mat)\nbpy.ops.wm.save_as_mainfile(filepath=str(out/'source.blend'))\nmat.diffuse_color=(0.7,0.1,0.1,1)\nbpy.ops.wm.save_as_mainfile(filepath=str(out/'color.blend'))\nobj.data.vertices[0].co.x+=0.2\nbpy.ops.wm.save_as_mainfile(filepath=str(out/'geometry.blend'))\nobj.modifiers.new('subdivision','SUBSURF')\nmat.use_nodes=True\nmat.node_tree.nodes.new('ShaderNodeTexImage')\nbpy.ops.wm.save_as_mainfile(filepath=str(out/'unsupported.blend'))\n`);
+  const run=args=>{const r=spawnSync(process.env.BLENDER_TEST_EXE,args,{encoding:'utf8',timeout:45000,windowsHide:true});assert.ifError(r.error);assert.equal(r.status,0,r.stdout+r.stderr);};
+  run(['--background','--factory-startup','--python-exit-code','1','--python',script,'--',base]);
+  const collector=fileURLToPath(new URL('./blender-domain-snapshot.py',import.meta.url)),original=fileRef(base,'source.blend');
+  for(const name of ['source','color','geometry','unsupported'])run(['--background','--factory-startup',path.join(base,name+'.blend'),'--python-exit-code','1','--python',collector,'--',path.join(base,name+'.json')]);
+  const [a,b,c,d]=['source','color','geometry','unsupported'].map(n=>readJSON(path.join(base,n+'.json')));
+  assert.ok(a.domains.geometry);assert.ok(a.domains.materials);assert.equal(a.domains.geometry,b.domains.geometry);assert.notEqual(a.domains.materials,b.domains.materials);assert.notEqual(b.domains.geometry,c.domains.geometry);
+  assert.equal(d.domains.geometry,null);assert.equal(d.domains.materials,null);assert.equal(a.domains.scene,null);assert.deepEqual(fileRef(base,'source.blend'),original);
+});

@@ -1,0 +1,11 @@
+{
+  "name": "tripo-studio-browser",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@playwright/mcp": "0.0.82"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0"
+  }
+}

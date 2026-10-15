@@ -1,0 +1,23 @@
+{
+  "release": "0.1.0",
+  "protocol": "3.6",
+  "validated_at": "2026-10-15T05:05:54.598Z",
+  "platform": "Windows",
+  "runtime": {
+    "node": "v26.8.2 (requires >=20)",
+    "python": "Python 3.13.13",
+    "blender": "Blender 5.2.0 LTS"
+  },
+  "workflow_tests": {
+    "passed": 114,
+    "failed": 0,
+    "skipped": 0
+  },
+  "python_tests": {
+    "passed": 4,
+    "failed": 0
+  },
+  "live_studio_submission": "not_executed_for_release",
+  "live_blender_mcp_bridge": "not_certified",
+  "scope": "Local rules and isolated real Blender fixtures only; no Studio generation or asset acceptance"
+}

@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "status": "draft_needs_asset_specific_thresholds",
+  "profile": null,
+  "gates": {
+    "reference": ["design_identity", "input_suitability", "view_consistency", "execution_scope", "motion_intent"],
+    "base_model": ["design_identity", "major_structure", "repair_feasibility", "deformation_readiness"],
+    "polish": ["silhouette", "geometry", "uv_materials", "performance_budget", "editable_master", "deformation_readiness"],
+    "motion": ["rig_structure", "weights", "deformation", "clips"],
+    "final": ["design_identity", "file_dependencies", "roundtrip", "requested_deliverables", "required_stage_reviews"]
+  },
+  "thresholds": {},
+  "exceptions": [],
+  "note": "按资产用途填写每项标准、观察条件、预算和不适用理由，在G0确认；不得直接把模板当已批准标准。"
+}
