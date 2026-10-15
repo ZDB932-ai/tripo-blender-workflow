@@ -1,3 +1,5 @@
+![Tripo 与 Blender 工作流：从参考、生成、核验到交付](docs/images/hero.png)
+
 <div align="center">
 
 # Tripo × Blender Workflow
@@ -11,7 +13,9 @@ An agent-assisted pipeline for Tripo Studio and Blender — from reference to ve
 [![Node.js](https://img.shields.io/badge/Node.js-22%2B-339933)](#环境要求)
 [![Validation](https://img.shields.io/badge/Release_tests-118_passed-2ea44f)](docs/validation/release-validation.md)
 
-[快速开始](#快速开始) · [工作流](#工作流) · [操作手册](docs/workflow/operator-guide.md) · [贡献指南](CONTRIBUTING.md)
+[快速开始](#快速开始) · [工作流](#工作流) · [使用示例](#使用示例) · [中断恢复](#中断与失败怎么处理) · [常见问题](#常见问题)
+
+[操作手册](docs/workflow/operator-guide.md) · [技能说明](SKILLS.md) · [贡献指南](CONTRIBUTING.md)
 
 </div>
 
@@ -24,6 +28,18 @@ An agent-assisted pipeline for Tripo Studio and Blender — from reference to ve
 这个项目把这些步骤组织成一个 **代理辅助的单资产工作流**：Tripo Studio 承担主要生成、绑定与原生动作；Blender 负责验证、必要局部修正和交付检查；本地 CLI 管理状态、执行记录与质量证据。
 
 适合通过 AI 编程代理协作制作游戏资产、角色原型或静态模型，并希望保留完整制作依据的开发者与创作者。
+
+## 先判断是否适合你
+
+| 你的目标 | 建议入口 | 需要注意 |
+|---|---|---|
+| 从参考图制作静态道具 | 需求与参考 → Studio → Blender 核验 → 交付 | 跳过绑定与动画阶段 |
+| 制作带骨骼和动作的角色 | 总控技能 + 绑定动作流程 | 先稳定结构，再做最后一次 Tripo 绑定与动作往返 |
+| 已有模型，需要检查或精修 | 归档已有来源 → 对应质量关卡 | 先确认来源与版本，复用合格结果 |
+| 中断后继续制作 | `work.mjs summary ASSET` | 按记录恢复；不要重新生成或重新运行未知操作 |
+| 将资产接入游戏引擎 | 引擎阶段技能 + 指定目标项目 | 需要实际目标项目验证；仅导出文件不等于已接入引擎 |
+
+> **这是面向 AI 代理和操作者的制作工具链。** 使用方式是“代理读技能、调用工具、保存记录，你完成必要审阅”，不是安装后点击一个按钮即可自动产出合格模型的独立应用。
 
 ## 核心能力
 
@@ -38,16 +54,19 @@ An agent-assisted pipeline for Tripo Studio and Blender — from reference to ve
 
 ## 工作流
 
-```mermaid
-flowchart LR
-    A[需求与参考] --> B[Tripo 制作]
-    B --> C[核验与必要修正]
-    C --> D[导出与回读]
-    D --> E[交付验收]
-    C -->|需要原生处理| B
-    C -->|局部修正| F[隔离 Blender 执行]
-    F --> C
-```
+![工作流架构：需求参考、Tripo 制作、Blender 核验、导出交付；代理与 CLI 贯穿身份、证据和恢复管理](docs/images/workflow.png)
+
+*流程示意图，不是模型成品展示。图中各阶段按任务需求启用；局部修正后仍需重新核验。*
+
+### 三个部分如何配合
+
+| 部分 | 负责什么 | 产出什么 |
+|---|---|---|
+| Tripo Studio | 网页生成、适用的原生处理、绑定与动作 | 可定位到具体任务和版本的远程结果 |
+| Blender | 检查模型、必要局部修正、导出和回读 | 可编辑母版、交换文件与检查证据 |
+| AI 代理 + 本地 CLI | 将需求转成阶段计划，执行和核对记录 | 来源关联、执行回执、质量报告和下一步指引 |
+
+### 需要绑定或动画时
 
 对于需要结构修正和新增动作的资产，采用以下顺序：
 
@@ -71,6 +90,15 @@ flowchart LR
 发布验证环境：Windows、Node.js 26.8.2、Python 3.13.13、Blender 5.2.0 LTS。其他版本与平台需在目标环境运行验证，见 [发布记录](docs/validation/release-validation.md)。
 
 ## 快速开始
+
+### 开始前准备
+
+- 一份明确需求：资产用途、静态或动画、目标格式、需要保留的特征；如需引擎接入，提供目标项目。
+- 自己有权使用的参考图或已有模型，以及可用的 Tripo Studio 会话。
+- 能调用终端与所需浏览器工具的 AI 代理；技能安装见下文，网页工具见 [Playwright 接入说明](PLAYWRIGHT_SETUP.md)。
+- 本机 Node.js、Python 与 Blender。先通过本地环境检查，再开始制作。
+
+下面命令从仓库根目录运行。`my-asset` 是示例资产名；Blender 路径和请求文件需要替换成自己的实际值。
 
 ### 1. 获取源码
 
@@ -115,6 +143,8 @@ node tools/workflow/work.mjs summary my-asset
 
 任务已经配置、候选模型已经归档，并准备好实际操作脚本与 `work/request.json` 后：
 
+这里的请求和结果文件**不是克隆后自带的通用模板**，应由代理根据当前候选、质量标准和真实操作生成。它们的路径相对 `assets/my-asset/`；不要把示例路径当作已存在的文件。
+
 ```powershell
 node tools/workflow/run-local.mjs run my-asset work/request.json --blender $blenderExe
 ```
@@ -126,6 +156,28 @@ node tools/workflow/run-local.mjs resume my-asset --result work/result.json
 ```
 
 `resume` 不会再次运行 Blender。缺少质量资料时保持待补充状态；未知执行先对账。请求、结果与诊断字段见 [本地自动执行](docs/workflow/local-automation.md) 和 [执行协议](tools/workflow/PRODUCTION.md)。
+
+## 使用示例
+
+以下是给代理的任务示例，不是命令行参数。将参考、格式和项目位置替换为真实信息。
+
+### 示例 A：从参考制作静态道具
+
+> 使用 tripo-studio-pipeline，根据我提供的参考制作一个游戏场景道具。它是静态资产，不需要绑定与动画；交付 GLB、可编辑 .blend 和预览图。先明确尺寸、朝向、材质与保留特征，再进入制作。费用沿用本任务已有授权，最终交付前展示实际导出回读结果。
+
+预期路线：参考审阅 → Studio 制作 → 外形与材质核验 → 必要局部修正 → GLB 导出与回读 → 最终审阅。
+
+### 示例 B：继续已有角色的绑定与动作
+
+> 使用 tripo-studio-pipeline，先检查已有角色任务与当前候选。复用已经通过的部分；如需结构修改，先稳定交换副本，再进行 Tripo 绑定和动作处理。最后检查权重、动作节奏和导出回读，并交付母版与约定格式文件。
+
+预期路线取决于已有记录。纯绑定任务跳过动作；新增动作不能覆盖已验收版本。具体见 [绑定与动画审阅](docs/workflow/animation-review.md)。
+
+### 示例 C：恢复中断任务
+
+> 继续资产 my-asset。先读取 summary 和现有日志、回执，判断是等待质量资料、远程对账还是本地对账。复用已有有效授权与成果，完成当前记录后继续下一阶段。
+
+先执行 `node tools/workflow/work.mjs summary my-asset`。缺少质量资料时补报告并 `resume`；提交状态未知时先核实原任务。
 
 ## 安装代理技能
 
@@ -154,6 +206,35 @@ node tools/workflow/sync-skills.mjs '你的技能安装目录' --apply
 | 恢复并提交质量结果 | `node tools/workflow/run-local.mjs resume ASSET --result RESULT.json` |
 | 检查正式记录 | `node tools/workflow/production.mjs check ASSET` |
 | 完整本地验证 | `node tools/workflow/validate.mjs --blender PATH` |
+
+## 中断与失败怎么处理
+
+![本地执行恢复图：成功回执补充质量证据，失败回执记录失败，超时或缺少回执进入对账](docs/images/recovery.png)
+
+| 看到的情况 | 下一步 | 完成条件 |
+|---|---|---|
+| `awaiting_quality_result` | 根据真实检查补齐结果文件，再 `resume --result` | 原执行回执与质量资料通过校验 |
+| `reconcile_local` | 检查原 Blender 进程、日志、回执和输出 | 执行身份与实际结果能够对账 |
+| `reconcile_remote` | 检查 Studio 原任务和结果版本 | 明确原提交结果，不重复点击生成 |
+| 有效失败回执 | 保留失败记录，诊断本轮原因 | 新尝试满足剩余范围和返工规则 |
+| 同一缺陷连续无改善 | 查看 `summary.repair_routing`，提供有证据的复盘和新方法 | 满足策略复盘要求，不能只改策略编号 |
+| 残留 `.workflow.lock` | 核实原执行者是否仍在运行 | 确认状态后按恢复协议处理 |
+
+`resume` 只恢复和核对已有记录，不会再次启动 Blender。进程退出码、日志或技术清单都不能单独证明资产质量合格。详见 [本地自动执行](docs/workflow/local-automation.md) 与 [恢复协议](tools/workflow/RECOVERY.md)。
+
+## 最终会交付什么
+
+具体文件取决于任务约定，而不是每个任务都强制生成所有格式。
+
+| 交付项 | 用途 | 验收依据 |
+|---|---|---|
+| 可编辑 Blender 母版 | 后续调整、保留制作成果 | 文件可打开，相关依赖可定位 |
+| 约定格式的导出文件 | 交换或目标运行环境使用 | 在干净环境回读，检查尺度、材质及适用的骨骼和动作 |
+| 预览与质量证据 | 核对外观、变形和动作表现 | 证据对应当前候选和最终文件版本 |
+| 制作与执行记录 | 追溯来源、修改和恢复过程 | 任务身份、哈希、执行回执和报告对应 |
+| 引擎验证结果（如要求） | 确认资产在指定项目可用 | 实际项目中的材质、尺度、碰撞及适用动画检查 |
+
+技术检查通过后仍需展示实际成果并记录最终意见。当前仓库提供工具链和验证夹具，**不包含可下载的生产模型作品集**；首页图片均为项目流程示意。
 
 ## 积分与审阅
 
@@ -186,6 +267,7 @@ python tools/workflow/test_deformation_guard.py
 │   ├── workflow/            # 状态、执行、质量校验、Blender 脚本与测试
 │   └── playwright/          # 可选浏览器 MCP 依赖
 ├── docs/
+│   ├── images/              # 首页配图与可重新生成的绘图源文件
 │   ├── workflow/            # 当前操作规范
 │   ├── validation/          # 发布验证摘要
 │   └── research/            # 标明日期的功能研究
@@ -204,8 +286,39 @@ python tools/workflow/test_deformation_guard.py
 
 生产模型、浏览器 profile、会话快照、凭据和私人项目记忆不在此仓库中。[交付说明](DELIVERY.md)列出了进一步的适用范围。
 
+## 常见问题
+
+**需要单独配置 Tripo API Key 吗？**
+
+当前生成路径使用 Studio 网页会话与网页积分，不会自动切换 API。浏览器登录和工具接入按 [接入说明](PLAYWRIGHT_SETUP.md) 配置。
+
+**每次使用积分都要确认吗？**
+
+有效授权覆盖的任务范围内不逐次询问。新操作者首次使用需记录自己的授权；用户审阅模型与批准费用是两件不同的事。
+
+**没有实时 Blender MCP，还能执行本地检查吗？**
+
+可以使用独立后台 Blender 路径，显式传入 `--blender`。实时场景控制与 Bridge 需要另外配置和验证；后台可运行不能证明这些连接可用。
+
+**为什么脚本成功了，任务还没有完成？**
+
+脚本成功仅证明执行结束。质量报告、导出回读和最终用户验收仍需完成；`awaiting_quality_result` 表示等待补齐质量资料。
+
+**克隆后为什么没有模型或参考图片？**
+
+`assets/` 是本地工作数据目录，默认不提交 Git。生产素材、账户会话和个人项目记录不随工具链发布。新任务从 `scaffold` 或已有来源归档开始。
+
+**能在 macOS 或 Linux 上运行吗？**
+
+当前发布记录只覆盖 Windows。其他平台需要调整可执行文件与工具路径，并在目标系统运行完整验证；本项目没有宣称这些平台已经通过验收。
+
+**118 项检查通过意味着什么？**
+
+表示发布时 114 项工作流测试与 4 项 Python 检查通过，其中完整验证包含真实后台 Blender 夹具。不代表任意新资产自动合格，也不代表已经验证新资产的在线端到端生产。
+
 ## 文档导航
 
+- [首页配图源文件](docs/images/README.md)：图片说明与重新生成方式。
 - [操作者入口](docs/workflow/operator-guide.md)：从新任务到交付的实际步骤。
 - [本地自动执行与返工](docs/workflow/local-automation.md)：run/resume、技术记录与换路。
 - [执行协议](tools/workflow/PRODUCTION.md)：正式状态、质量关卡与数据格式。
