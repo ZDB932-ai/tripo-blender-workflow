@@ -13,6 +13,7 @@ test('scaffold creates pending handoff and refuses to overwrite',()=>{
     assert.equal(JSON.parse(fs.readFileSync(path.join(target,'handoff.json'),'utf8')).stage,'reference');
     assert.equal(JSON.parse(fs.readFileSync(path.join(target,'reference-contract.json'),'utf8')).input_contract,'adaptive_reference_v1');
     assert.equal(JSON.parse(fs.readFileSync(path.join(target,'workflow-policy.json'),'utf8')).reference_input_contract,'adaptive_reference_v1');
+    assert.equal(JSON.parse(fs.readFileSync(path.join(target,'production.json'),'utf8')).local_revisions.iteration_policy.mode,'progress_guarded');
     assert.notEqual(run(id).status,0);
     assert.equal(fs.readFileSync(f,'utf8'),before);
     assert.notEqual(run('../escape').status,0);

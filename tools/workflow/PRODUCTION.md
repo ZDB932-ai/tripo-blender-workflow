@@ -1,5 +1,6 @@
 > 当前默认选路：[Tripo主生成、Blender辅助修正](../../docs/workflow/tripo-first.md)。先核查并利用目标相关的Tripo能力；Blender替代制作需要有证据的理由。此为技能选路规则，保留执行协议3.6及现有预算/验收约束。
 
+> 本地次数策略更新：新任务默认按进展继续，不请求增加批次数；旧任务按已有授权一次迁移。详见 [迭代策略](../../docs/workflow/iteration-policy.md)。下文数字上限规则仅适用于 explicit_budget 模式。
 > 费用：任务范围内默认自主使用现有 Studio 积分，按项目 docs/workflow/credit-policy.md 执行，不逐次请批。参考/质量审阅、本地返工限制、未知任务对账仍保留。
 
 # 制作状态、质量关卡与返工执行

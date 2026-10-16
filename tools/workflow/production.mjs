@@ -35,6 +35,7 @@ export function readProduction(base){
   const job=readJSON(path.join(base,'production.json'));
   if(job.schema_version!==2||!job.job_id||!['guided','autonomous'].includes(job.review_mode))throw Error('Production v2 migration required');
   if(!Array.isArray(job.local_revisions?.records)||!Array.isArray(job.local_revisions?.stopped_strategies)||!Number.isInteger(job.local_revisions.max_started)||job.local_revisions.max_started<0||!Number.isInteger(job.local_revisions.stop_after_no_improvement)||job.local_revisions.stop_after_no_improvement<1)throw Error('Invalid revision policy');
+  if(job.local_revisions.iteration_policy&&(!['progress_guarded','explicit_budget'].includes(job.local_revisions.iteration_policy.mode)||!job.local_revisions.iteration_policy.evidence?.trim()))throw Error('Invalid iteration policy');
   if(!job.gates||!job.artifacts||!Array.isArray(job.events))throw Error('Invalid production state');
   return job;
 }
@@ -91,7 +92,7 @@ function inspectNextCore(base,job){
       const exportLimits=spec.gates.final.filter(n=>spec.criteria[n].kind==='metric'&&spec.criteria[n].applicable!==false&&spec.criteria[n].limit===null);
       if(exportLimits.length)return {action:'configure_quality',skill:'tripo-studio-pipeline',blocked_by:exportLimits.map(n=>`unresolved_limit:${n}`)};
       const blocked=budgetBlockers(base,job,'export');
-      return {action:blocked.length?'resolve_budget':'export_for_engine',skill:blocked.length?'tripo-studio-pipeline':'tripo-studio-deliver',blocked_by:blocked.length?blocked:[],reason:e.message};
+      return {action:blocked.length?(job.local_revisions.iteration_policy?.mode==='progress_guarded'?'resolve_plateau':'resolve_budget'):'export_for_engine',skill:blocked.length?'tripo-studio-pipeline':'tripo-studio-deliver',blocked_by:blocked.length?blocked:[],reason:e.message};
     }
   }
   // Evidence collection/review remains possible with no edit budget. Expose the
@@ -249,7 +250,33 @@ function checkMutable(job){
   checkIdle(job);
   if(job.transfer&&['sending','unknown'].includes(job.transfer.status))throw Error('Reconcile transfer before changing production context');
 }
+// Progress mode replaces numeric attempt quotas, never quality or execution gates.
+export function progressBlockers(job,operation){
+  const records=job.local_revisions.records;
+  if(operation==='diagnostic'||operation==='export'){
+    const same=records.filter(r=>r.operation===operation&&r.baseline?.sha256===job.artifacts.candidate?.sha256&&(operation!=='export'||r.outcome!=='export_verified'));
+    if(same.length>=2)return ['Local route exhausted: reuse existing evidence or report the concrete blocker; do not request more attempts'];
+    return [];
+  }
+  let stagnant=0;
+  for(const r of [...records].reverse()){
+    if(['diagnostic','export'].includes(r.operation)||r.status==='started')continue;
+    if(r.outcome==='improved')break;
+    stagnant++;
+  }
+  return stagnant>=6?['Local repair plateau: preserve best candidate, diagnose or report unresolved requirements; do not request more attempts']:[];
+}
+export function setIterationPolicy(base,job,request){
+  checkMutable(job);
+  if(!['progress_guarded','explicit_budget'].includes(request.mode))throw Error('Invalid iteration mode');
+  requireText(request.evidence,'Actual iteration policy instruction');
+  const previous=job.local_revisions.iteration_policy||{mode:'explicit_budget'};
+  job.local_revisions.iteration_policy={mode:request.mode,evidence:request.evidence};
+  persist(base,job,{type:'iteration_policy_changed',previous,policy:job.local_revisions.iteration_policy,retained_attempts:job.local_revisions.records.length});
+  return {mode:request.mode,retained_attempts:job.local_revisions.records.length,invalidated_reviews:false};
+}
 export function budgetBlockers(base,job,operation,mode='repair'){
+  if(job.local_revisions.iteration_policy?.mode==='progress_guarded')return progressBlockers(job,operation);
   const blocked=[],bucket=budgetClass(operation,mode),budgets=job.local_revisions.budgets;
   if(budgets){
     if(!Number.isInteger(budgets[bucket])||budgets[bucket]<0)blocked.push('Operation budget not configured');
@@ -259,6 +286,7 @@ export function budgetBlockers(base,job,operation,mode='repair'){
   return blocked;
 }
 function totalLimitApplies(base,job){
+  if(job.local_revisions.iteration_policy?.mode==='progress_guarded')return false;
   const p=path.join(base,'workflow-policy.json');
   return !job.local_revisions.budgets||job.local_revisions.enforce_total!==false||(fs.existsSync(p)&&readJSON(p).status==='approved');
 }
@@ -489,8 +517,10 @@ export function configure(base,job,configRef){
   if(Boolean(c.requirements.engine?.required)!==Boolean(spec.engine_required))throw Error('Engine applicability mismatch');
   if(spec.engine_required)for(const key of ['name','version','project'])requireText(c.requirements.engine[key],`Engine ${key}`);
   requireText(c.requirements.intent,'Current intent');
-  if(!Number.isInteger(c.max_started)||c.max_started<job.local_revisions.records.length)throw Error('Limit cannot erase consumed rounds');
-  if(c.max_started>job.local_revisions.max_started)requireText(c.limit_extension_evidence,'Explicit limit extension evidence');
+  const progressMode=job.local_revisions.iteration_policy?.mode==='progress_guarded';
+  if(progressMode&&c.max_started===undefined)c.max_started=job.local_revisions.max_started;
+  if(!Number.isInteger(c.max_started)||c.max_started<0||(!progressMode&&c.max_started<job.local_revisions.records.length))throw Error('Limit cannot erase consumed rounds');
+  if(!progressMode&&c.max_started>job.local_revisions.max_started)requireText(c.limit_extension_evidence,'Explicit limit extension evidence');
   if(!['guided','autonomous'].includes(c.review_mode))throw Error('Review mode required');
   if(c.budgets){
     for(const key of ['repair','diagnostic','creation','export'])if(!Number.isInteger(c.budgets[key])||c.budgets[key]<job.local_revisions.records.filter(r=>recordBudget(r)===key).length)throw Error('Invalid classified budget');

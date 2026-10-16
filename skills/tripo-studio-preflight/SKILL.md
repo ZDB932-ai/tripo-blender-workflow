@@ -30,3 +30,5 @@ metadata:
 登录或连接异常时按项目 `docs/workflow/playwright-operations.md` 的统一会话恢复规则处理，复用当前 MCP 持久会话；不要调用已停用的独立恢复脚本或为了验证反复重启浏览器。
 
 参考数量按 docs/workflow/reference-intake.md：新任务 simple_static/concept 且明确静态可选已批准单图；角色、复杂结构和动画默认四图。旧四图契约不自动迁移，逐槽核对仍保留。
+
+本地修改次数按 docs/workflow/iteration-policy.md：新任务 progress_guarded；旧任务复用用户已有取消次数请批的指令一次迁移。不反复询问增加次数；无改善自动诊断换路，达到停滞保护时报告具体未解决要求，保留最佳候选与真实质量关卡。

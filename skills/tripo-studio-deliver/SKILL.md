@@ -33,3 +33,5 @@ metadata:
 动画用途的往返顺序按项目 `docs/workflow/roundtrip.md`，动作审阅按 `docs/workflow/animation-review.md`。原生绑定和所需新动作接收验证后，才在 Blender 完成最终权重、材质与动作精修。已有合格结果直接复用，局部纹理修改不触发重新绑定/动画；同版本意见复用，新结果保留真实验收范围。
 
 导入排错、单动作隔离播放及当前展示统一按项目 `docs/workflow/import-and-presentation.md` 执行。修模型前先区分源问题与播放问题；CURRENT.md由presentation.json生成，不能把最新草稿自动标为成品。
+
+本地修改次数按 docs/workflow/iteration-policy.md：新任务 progress_guarded；旧任务复用用户已有取消次数请批的指令一次迁移。不反复询问增加次数；无改善自动诊断换路，达到停滞保护时报告具体未解决要求，保留最佳候选与真实质量关卡。

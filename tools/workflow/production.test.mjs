@@ -6,7 +6,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {atomicJSON,fileRef,readJSON} from './production-io.mjs';
-import {newProduction,persist,beginIteration,finishIteration,evaluateGate,recordDecision,configure,inspectProduction} from './production.mjs';
+import {newProduction,persist,beginIteration,finishIteration,evaluateGate,recordDecision,configure,inspectProduction,budgetBlockers,setIterationPolicy} from './production.mjs';
 import {evaluateReport,assertAccepted} from './quality.mjs';
 import {checkAssetScope} from './policy.mjs';
 import {checkPlan,hash} from './workflow.mjs';
@@ -111,4 +111,47 @@ test('existing approved cap is honored and stale accepted evidence cannot author
   put('workflow-policy.json',{status:'approved',max_local_revision_rounds:5});accept('base_model');accept('polish');
   fs.writeFileSync(path.join(base,'view.png'),'modified view');
   assert.throws(()=>beginIteration(base,job,plan('motion','motion-strategy','motion')),/File changed/);
+}));
+
+
+test('progress policy preserves records and gates while replacing old quotas',()=>fixture(({base,job,accept})=>{
+  accept('base_model');const gates=structuredClone(job.gates);
+  job.local_revisions.max_started=0;
+  assert.ok(budgetBlockers(base,job,'geometry_repair').length);
+  assert.throws(()=>setIterationPolicy(base,job,{mode:'progress_guarded'}),/instruction/);
+  setIterationPolicy(base,job,{mode:'progress_guarded',evidence:'test user requested progress-based retries'});
+  assert.deepEqual(budgetBlockers(base,job,'geometry_repair'),[]);
+  assert.deepEqual(job.gates,gates);
+  setIterationPolicy(base,job,{mode:'explicit_budget',evidence:'test user restores cap'});
+  assert.ok(budgetBlockers(base,job,'geometry_repair').length);
+}));
+test('progress plateau spans renamed defects but leaves diagnosis and export available',()=>fixture(({base,job})=>{
+  job.local_revisions.iteration_policy={mode:'progress_guarded',evidence:'test'};
+  job.local_revisions.records=Array.from({length:6},(_,i)=>({id:'r'+i,operation:'geometry_repair',defect_id:'renamed'+i,status:'failed',outcome:'no_improvement'}));
+  assert.match(budgetBlockers(base,job,'geometry_repair')[0],/plateau/);
+  assert.deepEqual(budgetBlockers(base,job,'diagnostic'),[]);
+  assert.deepEqual(budgetBlockers(base,job,'export'),[]);
+  job.local_revisions.records.at(-1).outcome='improved';
+  assert.deepEqual(budgetBlockers(base,job,'geometry_repair'),[]);
+}));
+test('progress mode bounds repeated diagnostic and export work on the same source',()=>fixture(({base,job})=>{
+  job.local_revisions.iteration_policy={mode:'progress_guarded',evidence:'test'};
+  for(const operation of ['diagnostic','export']){
+    job.local_revisions.records=Array.from({length:2},()=>({operation,baseline:job.artifacts.candidate,status:'failed'}));
+    assert.match(budgetBlockers(base,job,operation)[0],/route exhausted/);
+    if(operation==='export'){
+      job.local_revisions.records.forEach(r=>r.outcome='export_verified');
+      assert.deepEqual(budgetBlockers(base,job,'export'),[]);
+    }
+    assert.deepEqual(budgetBlockers(base,job,'geometry_repair'),[]);
+  }
+}));
+test('progress policy cannot change during an unfinished execution and retains strategy stop',()=>fixture(({base,job,plan,put})=>{
+  setIterationPolicy(base,job,{mode:'progress_guarded',evidence:'test scoped authorization'});
+  for(let i=0;i<2;i++){
+    const r=beginIteration(base,job,plan('progress'+i));
+    assert.throws(()=>setIterationPolicy(base,job,{mode:'progress_guarded',evidence:'test'}),/still started/);
+    finishIteration(base,job,put('progress-result'+i+'.json',{job_id:job.job_id,iteration_id:r.id,status:'failed',summary:'no improvement',evidence:[fileRef(base,'view.png')]}));
+  }
+  assert.throws(()=>beginIteration(base,job,plan('progress-third')),/Strategy stopped/);
 }));

@@ -207,6 +207,10 @@ node tools/workflow/sync-skills.mjs '你的技能安装目录' --apply
 | 检查正式记录 | `node tools/workflow/production.mjs check ASSET` |
 | 完整本地验证 | `node tools/workflow/validate.mjs --blender PATH` |
 
+## 修改次数与防止反复返工
+
+新任务默认按实际进展继续，不再因为累计次数用尽反复请求扩额。有改善继续；同一缺陷连续两次无改善先诊断换方法；跨缺陷连续六次无改善停止新增制作，保留最佳候选并报告具体问题。诊断与导出独立处理，质量与验收不放宽。旧任务可按已有授权一次迁移，见 [本地迭代策略](docs/workflow/iteration-policy.md)。
+
 ## 中断与失败怎么处理
 
 ![本地执行恢复图：成功回执补充质量证据，失败回执记录失败，超时或缺少回执进入对账](docs/images/recovery.png)

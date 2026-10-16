@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {readProduction,inspectNext,beginIteration,finishIteration,persist} from './production.mjs';
+import {readProduction,inspectNext,beginIteration,finishIteration,persist,setIterationPolicy} from './production.mjs';
 import {prepareExecution,reconcileExecution} from './execution.mjs';
 import {fileRef,readJSON,localFile} from './production-io.mjs';
 import {loadSpec} from './quality.mjs';
@@ -24,7 +24,7 @@ export function taskSummary(base){
   return {job_id:job.job_id,requirements:job.requirements,review_mode:job.review_mode,
     source:job.artifacts.candidate,display_master:job.artifacts.display_master,
     phase:next.action==='complete'?'交付完成':!job.artifacts.candidate?'需求与参考':['engine','final','export_for_engine'].includes(next.action)?'交付验收':'制作与核验',
-    next,operator:operatorGuidance(base,job,next),quality_spec:job.quality_spec,local_budgets:job.local_revisions.budgets||{total:job.local_revisions.max_started},
+    next,operator:operatorGuidance(base,job,next),quality_spec:job.quality_spec,iteration_policy:job.local_revisions.iteration_policy||{mode:'explicit_budget'},local_budgets:job.local_revisions.iteration_policy?.mode==='progress_guarded'?null:job.local_revisions.budgets||{total:job.local_revisions.max_started},
     attempts:job.local_revisions.records.length,repair_routing:repairRouting(job),review_reuse:reuse,
     gates:Object.fromEntries(Object.entries(job.gates).map(([k,v])=>[k,{status:v.status,reused:Boolean(v.reuse)}])),
     reading:next.skill?['docs/workflow/skill-runtime.md','skills/'+next.skill+'/SKILL.md']:[]};
@@ -38,7 +38,8 @@ function operatorGuidance(base,job,next){
     reconcile_remote:'Read the current Studio task identity and outcome; do not resubmit.',
     reconcile_transfer:'Verify the same source in Blender and transfer evidence; do not resend.',
     select_source_run:'Explicitly select or defer the intended ready run; do not assume the latest run.',
-    resolve_budget:'Use existing scoped authorization or obtain the missing budget; do not reset attempt counts.',
+    resolve_budget:'Reuse existing authorization. If the user requested progress-based retries, use iteration-policy with that existing evidence once; never repeatedly ask for more attempts.',
+    resolve_plateau:'Preserve the best candidate and report the concrete unresolved requirement and tried routes. Do not ask for more attempts or weaken quality.',
     review:'Show current evidence and record the actual reviewer decision.',
     complete:'Verified recorded delivery is complete; preserve its files and acceptance.'
   };
@@ -95,14 +96,14 @@ export function finishWork(base,request){
 }
 export function main(args){
   const [command,id,input]=args;
-  if(!command||['help','--help','-h'].includes(command))return {usage:['work.mjs list','work.mjs summary ASSET','run-local.mjs run ASSET REQUEST.json --blender PATH [--result FILE]','run-local.mjs resume ASSET [--result FILE]','work.mjs start ASSET REQUEST.json','work.mjs finish ASSET RESULT.json'],guide:'docs/workflow/operator-guide.md'};
+  if(!command||['help','--help','-h'].includes(command))return {usage:['work.mjs list','work.mjs summary ASSET','work.mjs iteration-policy ASSET POLICY.json','run-local.mjs run ASSET REQUEST.json --blender PATH [--result FILE]','run-local.mjs resume ASSET [--result FILE]','work.mjs start ASSET REQUEST.json','work.mjs finish ASSET RESULT.json'],guide:'docs/workflow/operator-guide.md'};
   if(command==='list')return listTasks();
   if(!/^[a-z0-9-]+$/.test(id||''))throw Error('Usage: work.mjs summary|start|finish ASSET [REQUEST.json]');
   const base=path.join(root,'assets',id);
   if(command==='summary')return taskSummary(base);
-  if(!['start','finish'].includes(command))throw Error('Unknown work command');
+  if(!['start','finish','iteration-policy'].includes(command))throw Error('Unknown work command');
   const lock=path.join(base,'.workflow.lock'),fd=fs.openSync(lock,'wx');
-  try{const request=readJSON(localFile(base,input));return command==='start'?startWork(base,request):finishWork(base,request);}
+  try{const request=readJSON(localFile(base,input));return command==='iteration-policy'?setIterationPolicy(base,readProduction(base),request):command==='start'?startWork(base,request):finishWork(base,request);}
   finally{fs.closeSync(fd);fs.unlinkSync(lock);}
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
