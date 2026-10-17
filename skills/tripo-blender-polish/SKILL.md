@@ -11,6 +11,8 @@ metadata:
 
 替代制作前读取项目 `docs/workflow/studio-recipes.md` 配方3–5，评估原生分件/补全、重拓扑、Smart UV、局部纹理、超分和 PBR 是否更适合当前缺陷；不可用或精度不足须有依据。保留用户明确授权的 Blender 局部修正，并验证本轮保护属性没有受损。
 
+默认按项目 docs/workflow/concise-mode.md 执行：内部检查和恢复由代理处理，不将 blocked 直接变成用户请示；只在真实缺失设计输入、访问要求、范围变更或最终验收时询问。
+
 # Blender 几何与材质
 
 对指定模型进行审计或局部几何、UV、材质修整。
@@ -28,7 +30,7 @@ metadata:
 
 仅在执行具体操作或恢复对应故障时读取 [操作细节](references/procedure.md)。
 
-动画用途的往返顺序按项目 `docs/workflow/roundtrip.md`，动作审阅按 `docs/workflow/animation-review.md`。已有合格结构、绑定和动作直接复用，不为了执行往返而重绑或重生成；仅改纹理不触发新一轮绑定/动画。草稿节奏获用户确认后精修，局部修改做属性保护与适用动作回归；同版本意见复用，新绑定不能继承旧 rig/motion 验收。
+动画用途的往返顺序按项目 `docs/workflow/roundtrip.md`，动作审阅按 `docs/workflow/animation-review.md`。已有合格结构、绑定和动作直接复用，不为了执行往返而重绑或重生成；仅改纹理不触发新一轮绑定/动画。草稿节奏按当前交互模式审阅后精修（concise 由代理审阅），局部修改做属性保护与适用动作回归；同版本意见复用，新绑定不能继承旧 rig/motion 验收。
 
 导入排错、单动作隔离播放及当前展示统一按项目 `docs/workflow/import-and-presentation.md` 执行。修模型前先区分源问题与播放问题；CURRENT.md由presentation.json生成，不能把最新草稿自动标为成品。
 

@@ -33,7 +33,7 @@ export function remoteRuns(base){
 }
 export function remoteChoice(base,job,runs){
   const decisions=job.remote_dispositions||{};
-  const pending=runs.filter(r=>pendingRemote.includes(r.status)&&r.id!==job.source_run_id&&decisions[r.id]?.status!=='deferred'&&!continuedUnknown(base,job,r));
+  const pending=runs.filter(r=>!(job.interaction_policy?.mode==='concise'&&job.artifacts.candidate&&r.status==='planned')&&pendingRemote.includes(r.status)&&r.id!==job.source_run_id&&decisions[r.id]?.status!=='deferred'&&!continuedUnknown(base,job,r));
   const selected=job.active_remote_run;
   if(selected){
     const run=runs.find(r=>r.id===selected.run_id);

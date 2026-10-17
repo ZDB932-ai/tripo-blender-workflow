@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {readProduction,inspectNext,beginIteration,finishIteration,persist,setIterationPolicy} from './production.mjs';
+import {readProduction,inspectNext,beginIteration,finishIteration,persist,setIterationPolicy,simplifyWorkflow} from './production.mjs';
 import {prepareExecution,reconcileExecution} from './execution.mjs';
 import {fileRef,readJSON,localFile} from './production-io.mjs';
 import {loadSpec} from './quality.mjs';
@@ -52,7 +52,10 @@ function operatorGuidance(base,job,next){
       command:orphan||receipt?`node tools/workflow/run-local.mjs resume ${id}`:null};
     instruction='Reconcile this existing iteration. A missing receipt is not proof it never ran; never replay start. See RECOVERY.md and PRODUCTION.md.';
   }
-  return {instruction,recovery,lock_present:fs.existsSync(path.join(base,'.workflow.lock')),guide:'docs/workflow/operator-guide.md'};
+  const userReview=next.action==='review'&&(job.stage==='final'||job.review_mode==='guided');
+  if(next.action==='review'&&!userReview)instruction='Inspect the current evidence and record an honest AI review; continue without asking for intermediate approval.';
+  const responsibility=userReview?'user':next.action==='complete'?'none':'agent';
+  return {responsibility,ask_user:userReview,escalation:'Ask only for missing design intent, a real access/login requirement, a scope change, or final acceptance after exhausting relevant internal recovery.',instruction,recovery,lock_present:fs.existsSync(path.join(base,'.workflow.lock')),guide:'docs/workflow/operator-guide.md'};
 }
 export function listTasks(projectRoot=root){
   const folder=path.join(projectRoot,'assets');
@@ -75,6 +78,7 @@ export function startWork(base,request){
     execution:{...request.execution,script:asRef(base,request.execution.script)}};
   if(plan.capability)plan.capability=asRef(base,plan.capability);
   if(plan.strategy_review)plan.strategy_review=asRef(base,plan.strategy_review);
+  if(plan.rig_origin)plan.rig_origin=asRef(base,plan.rig_origin);
   const ref=saveRequest(base,`start-${n}-${Date.now()}.json`,plan);
   const round=beginIteration(base,job,ref);
   // begin is already persisted. If dispatch fails, resume its state, never begin again.
@@ -96,14 +100,14 @@ export function finishWork(base,request){
 }
 export function main(args){
   const [command,id,input]=args;
-  if(!command||['help','--help','-h'].includes(command))return {usage:['work.mjs list','work.mjs summary ASSET','work.mjs iteration-policy ASSET POLICY.json','run-local.mjs run ASSET REQUEST.json --blender PATH [--result FILE]','run-local.mjs resume ASSET [--result FILE]','work.mjs start ASSET REQUEST.json','work.mjs finish ASSET RESULT.json'],guide:'docs/workflow/operator-guide.md'};
+  if(!command||['help','--help','-h'].includes(command))return {usage:['work.mjs list','work.mjs summary ASSET','work.mjs iteration-policy ASSET POLICY.json','work.mjs simplify ASSET POLICY.json','run-local.mjs run ASSET REQUEST.json --blender PATH [--result FILE]','run-local.mjs resume ASSET [--result FILE]','work.mjs start ASSET REQUEST.json','work.mjs finish ASSET RESULT.json'],guide:'docs/workflow/operator-guide.md'};
   if(command==='list')return listTasks();
   if(!/^[a-z0-9-]+$/.test(id||''))throw Error('Usage: work.mjs summary|start|finish ASSET [REQUEST.json]');
   const base=path.join(root,'assets',id);
   if(command==='summary')return taskSummary(base);
-  if(!['start','finish','iteration-policy'].includes(command))throw Error('Unknown work command');
+  if(!['start','finish','iteration-policy','simplify'].includes(command))throw Error('Unknown work command');
   const lock=path.join(base,'.workflow.lock'),fd=fs.openSync(lock,'wx');
-  try{const request=readJSON(localFile(base,input));return command==='iteration-policy'?setIterationPolicy(base,readProduction(base),request):command==='start'?startWork(base,request):finishWork(base,request);}
+  try{const request=readJSON(localFile(base,input));return command==='simplify'?simplifyWorkflow(base,readProduction(base),request):command==='iteration-policy'?setIterationPolicy(base,readProduction(base),request):command==='start'?startWork(base,request):finishWork(base,request);}
   finally{fs.closeSync(fd);fs.unlinkSync(lock);}
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){

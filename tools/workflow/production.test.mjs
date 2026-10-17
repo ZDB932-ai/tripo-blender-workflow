@@ -6,7 +6,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {atomicJSON,fileRef,readJSON} from './production-io.mjs';
-import {newProduction,persist,beginIteration,finishIteration,evaluateGate,recordDecision,configure,inspectProduction,budgetBlockers,setIterationPolicy} from './production.mjs';
+import {newProduction,persist,beginIteration,finishIteration,evaluateGate,recordDecision,configure,inspectProduction,budgetBlockers,setIterationPolicy,simplifyWorkflow} from './production.mjs';
 import {evaluateReport,assertAccepted} from './quality.mjs';
 import {checkAssetScope} from './policy.mjs';
 import {checkPlan,hash} from './workflow.mjs';
@@ -134,17 +134,34 @@ test('progress plateau spans renamed defects but leaves diagnosis and export ava
   job.local_revisions.records.at(-1).outcome='improved';
   assert.deepEqual(budgetBlockers(base,job,'geometry_repair'),[]);
 }));
-test('progress mode bounds repeated diagnostic and export work on the same source',()=>fixture(({base,job})=>{
+test('diagnostic guard separates purposes and reuses completed evidence',()=>fixture(({base,job,put})=>{
   job.local_revisions.iteration_policy={mode:'progress_guarded',evidence:'test'};
-  for(const operation of ['diagnostic','export']){
-    job.local_revisions.records=Array.from({length:2},()=>({operation,baseline:job.artifacts.candidate,status:'failed'}));
-    assert.match(budgetBlockers(base,job,operation)[0],/route exhausted/);
-    if(operation==='export'){
-      job.local_revisions.records.forEach(r=>r.outcome='export_verified');
-      assert.deepEqual(budgetBlockers(base,job,'export'),[]);
-    }
-    assert.deepEqual(budgetBlockers(base,job,'geometry_repair'),[]);
-  }
+  const a={defect_id:'head',hypothesis:'inspect head',execution:{script:{sha256:'a'}}};
+  const b={defect_id:'foot',hypothesis:'inspect foot',execution:{script:{sha256:'b'}}};
+  job.local_revisions.records=[{operation:'diagnostic',baseline:job.artifacts.candidate,status:'completed',plan:put('diag-a.json',a)}];
+  assert.deepEqual(budgetBlockers(base,job,'diagnostic'),[]);
+  assert.deepEqual(budgetBlockers(base,job,'diagnostic','repair',b),[]);
+  assert.match(budgetBlockers(base,job,'diagnostic','repair',a)[0],/Reuse completed/);
+  job.local_revisions.records[0].status='failed';job.local_revisions.records.push({...job.local_revisions.records[0]});
+  assert.match(budgetBlockers(base,job,'diagnostic','repair',a)[0],/Repeated execution failure/);
+}));
+test('successful export resets same-format failures without blocking another format',()=>fixture(({base,job,put})=>{
+  job.local_revisions.iteration_policy={mode:'progress_guarded',evidence:'test'};
+  const plan={format:'glb'},ref=put('export-plan.json',plan);
+  job.local_revisions.records=Array.from({length:2},()=>({operation:'export',baseline:job.artifacts.candidate,status:'failed',plan:ref}));
+  assert.match(budgetBlockers(base,job,'export','repair',plan)[0],/Repeated execution failure/);
+  assert.deepEqual(budgetBlockers(base,job,'export','repair',{format:'fbx'}),[]);
+  assert.deepEqual(budgetBlockers(base,job,'export','repair',{format:'glb',execution:{script:{sha256:'corrected-script'}}}),[]);
+  job.local_revisions.records.push({operation:'export',baseline:job.artifacts.candidate,status:'completed',outcome:'export_verified',plan:ref});
+  assert.deepEqual(budgetBlockers(base,job,'export','repair',plan),[]);
+}));
+test('concise migration retains human evidence, source and attempt records, final still needs user',()=>fixture(({base,job,accept,report,put})=>{
+  accept('base_model');accept('polish');accept('motion');const gates=structuredClone(job.gates),source=structuredClone(job.artifacts.candidate);
+  simplifyWorkflow(base,job,{evidence:'test user requests concise workflow'});
+  assert.deepEqual(job.gates,gates);assert.deepEqual(job.artifacts.candidate,source);
+  assertAccepted(base,job,'motion');
+  const r=report('concise-final','final');evaluateGate(base,job,'final',r);
+  assert.throws(()=>recordDecision(base,job,'final',put('ai-final.json',{job_id:job.job_id,stage:'final',decision:'accepted',reviewer:'ai',evidence:'test',source_sha256:source.sha256,quality_spec_sha256:job.quality_spec.sha256,report_sha256:r.sha256})),/Reviewer/);
 }));
 test('progress policy cannot change during an unfinished execution and retains strategy stop',()=>fixture(({base,job,plan,put})=>{
   setIterationPolicy(base,job,{mode:'progress_guarded',evidence:'test scoped authorization'});

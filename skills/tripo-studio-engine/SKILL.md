@@ -9,6 +9,8 @@ metadata:
 
 接入前按项目 `docs/workflow/studio-recipes.md` 配方7核实实际三角数、LOD、材质通道与逐 clip 输出；8K 不代表所有贴图都是8K。Smart Mesh、超分或压缩是否有益须由目标引擎的外观、变形、内存和性能验证，Studio 查看器不能替代引擎验收。
 
+默认按项目 docs/workflow/concise-mode.md 执行：内部检查和恢复由代理处理，不将 blocked 直接变成用户请示；只在真实缺失设计输入、访问要求、范围变更或最终验收时询问。
+
 # 目标引擎验证
 
 将同版导出接入用户指定项目，形成最终验收的必要证据。

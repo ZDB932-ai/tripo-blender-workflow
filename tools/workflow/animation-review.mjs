@@ -57,7 +57,7 @@ export function validateCheckpoint(base,job,spec,ref){
   if(iteration.diagnostic_conclusion!=='supported')throw Error('Checkpoint diagnostic must support acceptance');
   verifyRef(base,d.artifact);evidence(base,d.evidence);
   if(d.decision!=='accepted')throw Error('Checkpoint not accepted');
-  if(d.kind==='rhythm'&&d.reviewer!=='user')throw Error('Rhythm requires actual user review');
+  if(d.kind==='rhythm'&&d.reviewer!=='user'&&!(job.interaction_policy?.mode==='concise'&&job.review_mode==='autonomous'&&d.reviewer==='ai'))throw Error('Rhythm requires actual user review');
   if(d.kind==='preflight'&&!['user','ai'].includes(d.reviewer))throw Error('Checkpoint reviewer required');
   requireText(d.review_evidence,'Actual review evidence');
   validateProtection(base,policy,d.protection);

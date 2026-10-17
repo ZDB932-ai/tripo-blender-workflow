@@ -11,6 +11,8 @@ metadata:
 
 按项目 `docs/workflow/studio-recipes.md` 配方7检查版本、格式保留属性、全部目标动作与纹理依赖；Studio 导出逐 clip 显式核对勾选，不假定播放中的动作自动导出。功能范围见 `docs/workflow/studio-capabilities.md` 的 D/X 条目。Bridge 传输与文件导出分别留证。分享、渲染、转换或压缩按用途选用，不从交付请求推定公开发布授权。
 
+默认按项目 docs/workflow/concise-mode.md 执行：内部检查和恢复由代理处理，不将 blocked 直接变成用户请示；只在真实缺失设计输入、访问要求、范围变更或最终验收时询问。
+
 # 传输与最终打包
 
 区分 transfer（同版模型接收）与 final-package（验证后的交付文件）。

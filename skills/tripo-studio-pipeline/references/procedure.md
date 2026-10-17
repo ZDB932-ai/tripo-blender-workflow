@@ -9,7 +9,7 @@
 - 区分展示母版、当前候选和诊断资产。失败候选归档后将当前视图切回保留的外观版本；不要删除失败证据，不将最后生成文件默认作为当前最佳版。确认截图与场景身份后再向用户交付比较。
 - 新资产运行 node tools/workflow/scaffold.mjs <asset-id>，已有资产先运行 production.mjs status，远程 run 另查 workflow.mjs status。按用户范围选择下一阶段，不无条件运行全部阶段。
 - 区分当前交付与未来用途：用户说后续要动画时，先做可动性预检并记录motion_intent，不自动制作动作。用途从静态扩展时新建增量质量记录，历史静态accepted不变；更新适用标准/授权哈希后才能用于新的付费任务。工作流验证应报告实测链路、未测链路和发现的失败，不以文档齐全或脚本通过替代成品证据。
-- 当前执行以 tools/workflow/PRODUCTION.md 为准，能力选路参考 docs/workflow/studio-capabilities.md 与 studio-recipes.md。先确定review_mode：guided逐阶段用户验收，autonomous 保留参考与范围确认、动画节奏草稿及 final 最终用户验收；两种模式都执行技术关卡。未选择用guided；用户要求添加选项不等于已为资产选择autonomous。
+- 当前执行以 tools/workflow/PRODUCTION.md 为准，能力选路参考 docs/workflow/studio-capabilities.md 与 studio-recipes.md。先确定review_mode：guided逐阶段用户验收，autonomous 保留参考与范围确认及 final 最终用户验收；concise 节奏草稿由代理审阅；两种模式都执行技术关卡。新任务默认 autonomous + concise；旧任务按用户已有简化要求执行 work simplify，不重复询问。
 - 按 docs/workflow/tripo-first.md，以Tripo生成、Blender辅助修正为默认选路：P/H、Mesh Edit、分件补全、拓扑、纹理、绑定/动作均是Tripo候选。需要结构修正的动画路线读 docs/workflow/roundtrip.md：稳定结构→独立交换副本上传→Tripo绑定/目标动作→Blender导回核验→最终权重、材质、动作精修。早期试绑是诊断分支，不强制每个模型绑两次。保留母版及旧精修内容，上传或已绑定标志不保证旧骨架/权重/动作无损；显式选择导出clip并查实际通道和完整播放。通过部分不重复制作，每次往返记录parent/hash及失效检查。自主模式内不因换阶段重复请批，原前置检查、后端、操作范围及本地返工限制保持；Studio积分按持续授权执行。
 - 阶段路由：需求/图片→reference；连接/参数/报价→preflight；提交/等待/恢复→generate；Tripo可制作性检查→refine；中间件导出→deliver；Blender精修→tripo-blender-polish；需要绑定/动作→先refine核查Tripo自动绑定/动作并交preflight/generate；已有原生结果的验证与局部修正→tripo-blender-rig-motion；最终导出→deliver；指定引擎集成→engine。reference/preflight/generate/refine/deliver/engine均为tripo-studio-前缀技能。按需读取同级技能，避免一次加载全部。
 - 新资产填写workflow-policy.json与quality-spec.json，从用户请求明确设计、允许操作/后端与本地返工范围；Studio积分自动应用持续授权，不询问总积分或付费次数。run状态只表示Tripo阶段；用 production 的版本化标准、关卡和批次记录区分 Blender 制作与最终验收。Studio 连通性按当前运行核实；未来CLI/API只是适配设计，不自动切换额度。

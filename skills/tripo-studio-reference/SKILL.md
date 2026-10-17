@@ -9,6 +9,8 @@ metadata:
 
 参考准备同时评估项目 `docs/workflow/studio-capabilities.md` 的 R01–R09，具体见 `docs/workflow/studio-recipes.md` 配方1。默认仍使用内置 imagegen；用户明确选择 Studio 时核实模板、抠图、多视图及费用。当前参考前付费任务尚无独立执行适配，不能伪造最终参考批准来绕过生产关卡。
 
+默认按项目 docs/workflow/concise-mode.md 执行：内部检查和恢复由代理处理，不将 blocked 直接变成用户请示；只在真实缺失设计输入、访问要求、范围变更或最终验收时询问。
+
 # 需求与参考
 
 建立或修订 brief、参考图/文字设计及审阅版本；不提交三维生成。

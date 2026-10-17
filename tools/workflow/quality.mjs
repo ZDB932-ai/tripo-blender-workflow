@@ -184,7 +184,7 @@ export function assertAccepted(base,job,stage,seen=new Set(),independent=false){
 }
 export function validateDecision(job,stage,report,action,decision){
   const expected=action==='user_review'?'user':'ai';
-  if(!['accepted','rejected'].includes(decision.decision)||decision.reviewer!==expected||decision.stage!==stage||decision.job_id!==job.job_id||decision.source_sha256!==job.artifacts.candidate.sha256||decision.quality_spec_sha256!==job.quality_spec.sha256||decision.report_sha256!==report.sha256)throw Error('Reviewer/decision identity mismatch');
+  if(!['accepted','rejected'].includes(decision.decision)||!(decision.reviewer===expected||(job.interaction_policy?.mode==='concise'&&expected==='ai'&&decision.reviewer==='user'))||decision.stage!==stage||decision.job_id!==job.job_id||decision.source_sha256!==job.artifacts.candidate.sha256||decision.quality_spec_sha256!==job.quality_spec.sha256||decision.report_sha256!==report.sha256)throw Error('Reviewer/decision identity mismatch');
   requireText(decision.evidence,'Actual reviewer evidence');
   if(action==='blocked'&&decision.decision==='accepted')throw Error('Technical failure cannot be accepted');
 }

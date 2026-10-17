@@ -99,6 +99,7 @@ function inspectNextCore(base,job){
   // allowed operations instead of incorrectly blocking the whole stage.
   const choices=Object.keys(operations).filter(operation=>operationStage(spec,operation)===next.action).flatMap(operation=>
     (['motion','rig','material','uv'].includes(operation)?['repair','create']:['repair']).map(mode=>({operation,mode,blocked_by:budgetBlockers(base,job,operation,mode)})));
+  if(next.action==='polish'&&spec.animation_workflow&&spec.rig_required&&operationStage(spec,'weight_repair')==='rig')choices.push({operation:'weight_repair',mode:'repair',repair_phase:'preflight_weights',requires:['current_tripo_rig_origin','weight_only_scope','protected_domain_regression'],blocked_by:budgetBlockers(base,job,'weight_repair')});
   const animation_checkpoints=spec.animation_workflow&&animated(job)?['preflight',...(job.requirements.motion_required?['rhythm']:[])].map(kind=>{try{const ref=job.animation_reviews?.[kind];if(!ref)throw Error('not recorded');validateCheckpoint(base,job,spec,ref);return {kind,status:'current'};}catch(e){return {kind,status:'required',reason:e.message};}}):[];
   return {...next,animation_checkpoints,operation_readiness:choices,stopped_strategies:job.local_revisions.stopped_strategies};
 }
@@ -251,12 +252,25 @@ function checkMutable(job){
   if(job.transfer&&['sending','unknown'].includes(job.transfer.status))throw Error('Reconcile transfer before changing production context');
 }
 // Progress mode replaces numeric attempt quotas, never quality or execution gates.
-export function progressBlockers(job,operation){
+export function progressBlockers(job,operation,base=null,plan=null){
   const records=job.local_revisions.records;
   if(operation==='diagnostic'||operation==='export'){
-    const same=records.filter(r=>r.operation===operation&&r.baseline?.sha256===job.artifacts.candidate?.sha256&&(operation!=='export'||r.outcome!=='export_verified'));
-    if(same.length>=2)return ['Local route exhausted: reuse existing evidence or report the concrete blocker; do not request more attempts'];
-    return [];
+    // Readiness is not a proposed operation. Decide using its actual purpose.
+    if(!plan)return [];
+    const key=p=>operation==='diagnostic'
+      ?JSON.stringify([p.defect_id,p.hypothesis,p.execution?.script?.sha256])
+      :JSON.stringify([p.format?.toLowerCase(),p.export_purpose||'delivery']);
+    let failures=0;
+    for(const r of [...records].reverse()){
+      if(r.operation!==operation||r.baseline?.sha256!==job.artifacts.candidate?.sha256)continue;
+      const prior=r.plan&&base?readJSON(verifyRef(base,r.plan)):r;
+      if(key(prior)!==key(plan))continue;
+      if(operation==='diagnostic'&&r.status==='completed')return ['Reuse completed diagnostic evidence for this same source and purpose'];
+      if(operation==='export'&&r.outcome==='export_verified')break;
+      if(operation==='export'&&prior.execution?.script?.sha256!==plan.execution?.script?.sha256)continue;
+      if(['failed','aborted'].includes(r.status))failures++;
+    }
+    return failures>=2?['Repeated execution failure for this purpose: diagnose the cause before retrying; do not request more attempts']:[];
   }
   let stagnant=0;
   for(const r of [...records].reverse()){
@@ -265,6 +279,15 @@ export function progressBlockers(job,operation){
     stagnant++;
   }
   return stagnant>=6?['Local repair plateau: preserve best candidate, diagnose or report unresolved requirements; do not request more attempts']:[];
+}
+export function simplifyWorkflow(base,job,request){
+  checkMutable(job);requireText(request.evidence,'Actual simplification instruction');
+  const previous={review_mode:job.review_mode,interaction_policy:job.interaction_policy||null,iteration_policy:job.local_revisions.iteration_policy||null};
+  job.review_mode='autonomous';
+  job.interaction_policy={mode:'concise',evidence:request.evidence};
+  job.local_revisions.iteration_policy={mode:'progress_guarded',evidence:request.evidence};
+  persist(base,job,{type:'workflow_simplified',previous,evidence:request.evidence});
+  return {review_mode:job.review_mode,retained_attempts:job.local_revisions.records.length,invalidated_reviews:false};
 }
 export function setIterationPolicy(base,job,request){
   checkMutable(job);
@@ -275,8 +298,8 @@ export function setIterationPolicy(base,job,request){
   persist(base,job,{type:'iteration_policy_changed',previous,policy:job.local_revisions.iteration_policy,retained_attempts:job.local_revisions.records.length});
   return {mode:request.mode,retained_attempts:job.local_revisions.records.length,invalidated_reviews:false};
 }
-export function budgetBlockers(base,job,operation,mode='repair'){
-  if(job.local_revisions.iteration_policy?.mode==='progress_guarded')return progressBlockers(job,operation);
+export function budgetBlockers(base,job,operation,mode='repair',plan=null){
+  if(job.local_revisions.iteration_policy?.mode==='progress_guarded')return progressBlockers(job,operation,base,plan);
   const blocked=[],bucket=budgetClass(operation,mode),budgets=job.local_revisions.budgets;
   if(budgets){
     if(!Number.isInteger(budgets[bucket])||budgets[bucket]<0)blocked.push('Operation budget not configured');
@@ -351,7 +374,7 @@ function beginIterationInternal(base,job,planRef,adoption=null){
   checkAnimationPlan(base,job,spec,plan);
   if(!Array.isArray(plan.success_checks)||!plan.success_checks.length||plan.success_checks.some(n=>!spec.criteria[n]))throw Error('Known success checks required');
   if(!Array.isArray(plan.protected_checks)||!plan.protected_checks.length||plan.protected_checks.some(n=>!spec.criteria[n]))throw Error('Known protected checks required');
-  const bucket=budgetClass(plan.operation,plan.mode),blocked=budgetBlockers(base,job,plan.operation,plan.mode);
+  const bucket=budgetClass(plan.operation,plan.mode),blocked=budgetBlockers(base,job,plan.operation,plan.mode,plan);
   if(blocked.length)throw Error(blocked.join('; '));
   if(!['export','diagnostic'].includes(plan.operation)&&stopped(job,plan.defect_id,plan.strategy_id))throw Error('Strategy stopped after no improvement; use a materially different hypothesis');
   validateStrategyReview(base,job,plan);

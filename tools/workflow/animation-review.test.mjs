@@ -112,3 +112,11 @@ test('native Blender snapshots are repeatable, detect geometry changes and prese
   assert.ok(Object.keys(a.properties).some(k=>k.endsWith(':geometry')&&a.properties[k]!==c.properties[k]));
   assert.ok(a.not_tested.includes('visual quality'));
 });
+
+test('concise rhythm permits evidenced AI review but still rejects failed diagnostic',t=>{
+  const f=fixture(t),d=f.checkpoint('rhythm');d.reviewer='ai';
+  f.job.interaction_policy={mode:'concise',evidence:'test user request'};f.job.review_mode='autonomous';
+  const validate=()=>validateCheckpoint(f.base,f.job,f.spec,f.put('concise-rhythm.json',d));
+  validate();f.job.local_revisions.records[0].diagnostic_conclusion='inconclusive';
+  assert.throws(validate,/support acceptance/);
+});

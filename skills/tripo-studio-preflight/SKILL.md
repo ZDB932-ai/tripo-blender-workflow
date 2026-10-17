@@ -9,6 +9,8 @@ metadata:
 
 按项目 `docs/workflow/studio-recipes.md` 核对所选功能的输入兼容性：三角/四边面、已绑定状态、UV、面数及下游依赖。空面板存在按钮不等于当前模型可用；参数与报价从正确源版本的实际页面读取。功能索引见 `docs/workflow/studio-capabilities.md`。
 
+默认按项目 docs/workflow/concise-mode.md 执行：内部检查和恢复由代理处理，不将 blocked 直接变成用户请示；只在真实缺失设计输入、访问要求、范围变更或最终验收时询问。
+
 # Studio 操作计划
 
 读取当前功能、账户、输入与报价，为一次操作形成具体计划。

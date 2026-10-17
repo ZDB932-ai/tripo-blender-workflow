@@ -12,7 +12,7 @@
 2. **正式精修前预检**：启用本协议的动画任务，正式本地rig、material、uv以及Studio独立texture提交前需要当前preflight。初期Studio原生绑定/动作run和隔离diagnostic可先于正式本地关卡；结构修正也不要求先有正式rig。服务若不可分离几何与纹理，允许初始生成附带纹理，但不因此跳过当前源试验；不要重复付费纹理。试验不允许越过原有Studio授权与传输检查。最终权重、刚性装备随动和动作精修安排在最后一次必要往返之后。
 导入前发现缺少纹理仍需按 `tripo-studio-deliver` 询问用户；本节的先预检要求不免除告知。若纹理生成被当前 preflight 阻塞，应在询问中明确先隔离灰模诊断、再生成纹理并正式导入的顺序，复用用户已有选择和诊断授权，不把纹理意愿当作跳过预检的授权。
 
-3. **先节奏草稿**：正式动作精修前，优先展示匹配的Tripo原生动作；需要调整时用diagnostic副本做最低限度适配，给用户展示当前各目标动作的实时和慢放。记录速度、幅度、手脚配合、重心、root策略与循环意图。用户确认该版本后记录rhythm。guided/autonomous都需真实用户节奏意见；旧批准仅在同源、同标准、同草稿时复用。“允许消耗/开始制作”不等于接受尚未看过的节奏。
+3. **先节奏草稿**：正式动作精修前，优先展示匹配的Tripo原生动作；需要调整时用diagnostic副本做最低限度适配，给用户展示当前各目标动作的实时和慢放。记录速度、幅度、手脚配合、重心、root策略与循环意图。按当前交互模式审阅该版本后记录rhythm。旧模式保留用户节奏意见；concise 模式由代理基于相同证据审阅；旧批准仅在同源、同标准、同草稿时复用。“允许消耗/开始制作”不等于接受尚未看过的节奏。
 4. **保护区双向覆盖**：每个目标刺激都必须有保护区。人形角色至少考虑手臂→头/胸/腹、腿→下腹/骨盆中线/对侧腿、躯干→肩髋接口。非人形按实际结构定义，不强套四肢。冻结语义选区、左右边界、根运动移除、测量方式和本资产容差；隔离姿势和目标完整clip均测试。归一权重不能替代远端位移/轮廓检查。
 5. **观感单独审阅**：每个目标动作/试验必须有正面、侧面、问题区域近景、1倍实时和小于1倍慢放。记录实际观察，检查轮廓、拉扯、接缝、穿插、接触、摆动自然度与循环。静态帧或脚底数字不能替代动画。技术结果与审美结论分别写明，不宣称未测范围合格。
 6. **局部回归**：修改前声明具体属性选择器、受影响clip和保护项。前后采集属性指纹，检查未声明变化；对受影响clip全段/半帧检查，并复测保护区。保持不变的曲线只能证明未改动，不自动继承整个资产的验收。网格/骨架/权重变化要扩大测试到所有依赖动作；仅改指定曲线可缩小回归范围，但仍检查接口与循环。
@@ -43,7 +43,7 @@
 node tools/workflow/production.mjs animation-review ASSET work/checkpoint.json
 ```
 
-checkpoint字段：job_id、source_sha256（当前正式候选）、quality_spec_sha256、kind=preflight|rhythm、iteration_id（已完成且结论为supported的diagnostic）、artifact（该诊断产物文件引用）、decision=accepted、reviewer、review_evidence（实际意见）、evidence、protection、presentation。preflight允许AI审阅；rhythm必须user。检查器验证身份、来源与文件哈希，不认证自然语言是谁说的，不自动判断视频审美。
+checkpoint字段：job_id、source_sha256（当前正式候选）、quality_spec_sha256、kind=preflight|rhythm、iteration_id（已完成且结论为supported的diagnostic）、artifact（该诊断产物文件引用）、decision=accepted、reviewer、review_evidence（实际意见）、evidence、protection、presentation。preflight允许AI审阅；rhythm 在旧模式必须 user，concise + autonomous 可由 ai 审阅。检查器验证身份、来源与文件哈希，不认证自然语言是谁说的，不自动判断视频审美。
 
 `protection`逐项包含`{id,status:"pass",observation,evidence:[文件引用]}`，覆盖冻结矩阵。测量文件应保存实际姿势、选区、单位、阈值及结果；未知和失败不能填pass。
 

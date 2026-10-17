@@ -9,6 +9,8 @@ metadata:
 
 诊断后按项目 `docs/workflow/studio-capabilities.md` 的 M/T/A 条目选择对应操作，执行细节看 `docs/workflow/studio-recipes.md`：先分清结构、拓扑、UV、颜色、材质和动作缺陷，再决定处理。保留合格层，标记变化影响的下游关卡，避免以重生成替代局部修复。
 
+默认按项目 docs/workflow/concise-mode.md 执行：内部检查和恢复由代理处理，不将 blocked 直接变成用户请示；只在真实缺失设计输入、访问要求、范围变更或最终验收时询问。
+
 # Studio 结果检查
 
 检查当前 Studio 结果，提出有证据的缺陷及处理候选。

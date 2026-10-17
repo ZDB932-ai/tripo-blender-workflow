@@ -16,13 +16,15 @@ const write=(name,obj)=>fs.writeFileSync(path.join(base,name),JSON.stringify(obj
 write('brief.json',{schema_version:1,asset_id:id,title:null,intent:null,engine:null,rigging:null,scale_meters:null,preserve:[],acceptance:[],unresolved:[]});
 write('intake-v001.json',{schema_version:1,intent:null,animation:{status:'unresolved',use:null,evidence:null,motion_intent:null,design_implications:null}});
 write('reference-contract.json',{schema_version:1,input_contract:'adaptive_reference_v1',default_views:['front','left','right','back'],single_image_profiles:['simple_static','concept'],submission:'Choose reviewed input by asset complexity; animation and complex/character assets use four independent views'});
-write('workflow-policy.json',{schema_version:1,credit_authorization:defaultCreditAuthorization,review_mode:'guided',status:'needs_configuration',evidence:null,reference_input_contract:'adaptive_reference_v1',allowed_backends:['tripo_studio_browser'],allowed_operations:[],studio_credit_cap:null,max_paid_runs:null,max_local_revision_rounds:0,reference_manifest_sha256:null,quality_profile:null,quality_spec_sha256:null});
+write('workflow-policy.json',{schema_version:1,credit_authorization:defaultCreditAuthorization,review_mode:'autonomous',status:'needs_configuration',evidence:null,reference_input_contract:'adaptive_reference_v1',allowed_backends:['tripo_studio_browser'],allowed_operations:[],studio_credit_cap:null,max_paid_runs:null,max_local_revision_rounds:0,reference_manifest_sha256:null,quality_profile:null,quality_spec_sha256:null});
 fs.copyFileSync(path.join(root,'tools/workflow/quality-spec.template.json'),path.join(base,'quality-spec.json'));
 // G0/submission requirements remain distinct from the versioned production criteria.
 write('production-quality-v001.json',qualityTemplate(false));
 const production=newProduction(id,fileRef(base,'production-quality-v001.json'));
 // New jobs use progress guards. Legacy quotas remain available as an explicit option.
 production.animation_workflow_required=true;
+production.review_mode='autonomous';
+production.interaction_policy={mode:'concise',evidence:'Default concise workflow: agent reviews intermediate evidence, user accepts final delivery'};
 production.local_revisions.iteration_policy={mode:'progress_guarded',evidence:'Default workflow policy: continue scoped work by verified progress; no per-attempt quota prompts'};
 production.local_revisions.enforce_total=false;
 production.local_revisions.limit_basis='Progress guards replace numeric quotas; preserve actual scope and quality gates';

@@ -11,6 +11,8 @@ metadata:
 
 Tripo 动作选路按项目 `docs/workflow/studio-recipes.md` 配方6覆盖预设、文字/视频定制及多阶段动画，逐 clip 记录来源和适用条件；页面未核实的视频限制不凭推测填写。冻结帧仅适用于静态姿势交付，不能替代动画验收；沿用 Tripo 骨架。
 
+默认按项目 docs/workflow/concise-mode.md 执行：内部检查和恢复由代理处理，不将 blocked 直接变成用户请示；只在真实缺失设计输入、访问要求、范围变更或最终验收时询问。
+
 # 骨架权重与动作
 
 检查已有骨架/动作或按当前需求制作；静态请求跳过。
@@ -28,7 +30,7 @@ Tripo 动作选路按项目 `docs/workflow/studio-recipes.md` 配方6覆盖预�
 
 仅在执行具体操作或恢复对应故障时读取 [操作细节](references/procedure.md)。
 
-动画用途的往返顺序按项目 `docs/workflow/roundtrip.md`，动作审阅按 `docs/workflow/animation-review.md`。草稿节奏获用户确认后精修。每种刺激覆盖反向保护区，提供适用的多视角、近景、实时与慢放证据；局部修改做属性指纹与受影响动作回归。已有同版本意见复用，新绑定不能继承旧 rig/motion 验收；仅纹理修改不触发重新往返。
+动画用途的往返顺序按项目 `docs/workflow/roundtrip.md`，动作审阅按 `docs/workflow/animation-review.md`。草稿节奏按当前交互模式审阅后精修（concise 由代理审阅）。每种刺激覆盖反向保护区，提供适用的多视角、近景、实时与慢放证据；局部修改做属性指纹与受影响动作回归。已有同版本意见复用，新绑定不能继承旧 rig/motion 验收；仅纹理修改不触发重新往返。
 
 导入排错、单动作隔离播放及当前展示统一按项目 `docs/workflow/import-and-presentation.md` 执行。修模型前先区分源问题与播放问题；CURRENT.md由presentation.json生成，不能把最新草稿自动标为成品。
 
